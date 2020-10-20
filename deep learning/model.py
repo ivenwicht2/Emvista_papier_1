@@ -9,17 +9,11 @@ class LSTM(nn.Module):
         super().__init__() 
         self.embedding = nn.Embedding(len_vocab, emb_dim)
         self.encoder = nn.LSTM(emb_dim, hidden_dim, num_layers=1, dropout=recurrent_dropout)
-        self.linear_layers = []
-        for _ in range(num_linear - 1):
-            self.linear_layers.append(nn.Linear(hidden_dim, hidden_dim))
-        self.linear_layers = nn.ModuleList(self.linear_layers)
         self.predictor = nn.Linear(hidden_dim, len_output)
     
     def forward(self, seq):
         hdn, _ = self.encoder(self.embedding(seq))
         feature = hdn[-1, :, :]
-        for layer in self.linear_layers:
-            feature = layer(feature)
         preds = self.predictor(feature)
         return preds
 

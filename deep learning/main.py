@@ -17,7 +17,7 @@ param = Namespace(
     em_sz = 100,
     nh = 500,
     nl = 3,
-    epochs=  15  
+    epochs=  4  
 )
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -30,13 +30,15 @@ model = LSTM(len_vocab,len(labels),param.nh, emb_dim=param.em_sz).to(device)
 opt = optim.Adam(model.parameters(), lr=1e-2)
 loss_func = nn.BCEWithLogitsLoss()
 
-confusion_matrice = []
+
 for epoch in range(1, param.epochs + 1):
     running_loss = 0.0
     running_corrects = 0
     model.train() 
-    pred_array = []
-    true_array = []
+    
+    true_pred = []
+    model_pred = []
+    
     for x, y in tqdm.tqdm(train_dl):
  
         length = len(y)
@@ -71,15 +73,31 @@ for epoch in range(1, param.epochs + 1):
         val_loss += loss.item() * x.size(0)
 
         for i in range(len(y)):
-            preds = np.argmax(y[i].detach().cpu())
-            true_preds = np.argmax(preds[i].detach().cpu())
-            if preds  == true_preds :
+            pred = torch.argmax(y[i])
+            y_pred =  torch.argmax(preds[i])
+            if pred  == y_pred :
                 class_correct += 1
             class_total +=1
 
-            pred_array.append(preds)
-            true_array.append(true_preds)
+            true_pred.append(y_pred.item())
+            model_pred.append(pred.item())
+        
+    if epoch == param.epochs :
+        print(labels)
+        #print(confusion_matrix(true_pred, model_pred))
+        matrice = {}
+        for y_true,y_pred in zip(true_pred,model_pred):
+            if labels[y_pred] not in matrice :
+                matrice[labels[y_pred]] = []
+            
+            if y_true == y_pred :
+                matrice[labels[y_pred]].append(1)
+            else :
+                matrice[labels[y_pred]].append(0)
 
+        for el in matrice : 
+            matrice[el] = np.mean(matrice[el])
+        print(matrice)
 
 
 
@@ -91,4 +109,4 @@ for epoch in range(1, param.epochs + 1):
     print('Epoch: {}, Training Loss: {:.4f}, Validation Loss: {:.4f}, Accuracy {:.4f}'.format(epoch, epoch_loss, val_loss,accuracy))
 
 
-    confusion_matrix(pred_array, true_array, labels=labels)
+    
